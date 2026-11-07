@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Zone: Il Calcolatore Consapevole dell'Alcol</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: '#131c2e',
+                        borderCol: '#1e293b',
+                        golden: '#eab308',
+                        dangerRed: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Inter & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-black">
+
+    <!-- Top Navigation Bar -->
+    <header class="border-b border-borderCol bg-cardBg/80 backdrop-blur sticky top-0 z-50 px-4 py-3 shadow-md">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-darkBg font-bold shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-beer-mug-empty"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base tracking-tight leading-tight">Buzz Control</h1>
+                    <p class="text-xs text-amber-400 font-medium tracking-wide">GOLDEN ZONE <span class="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-300">PRO</span></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openProfileModal()" class="w-9 h-9 rounded-xl bg-borderCol/60 hover:bg-borderCol flex items-center justify-center text-slate-300 transition" title="Profilo Utente">
+                    <i class="fa-solid fa-user-gear"></i>
+                </button>
+                <button onclick="confirmResetSession()" class="w-9 h-9 rounded-xl bg-borderCol/60 hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center text-slate-300 transition" title="Resetta Serata">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Mobile Container -->
+    <main class="max-w-md mx-auto w-full p-4 flex-1 flex flex-col space-y-5 pb-20">
+
+        <!-- Driving Status Card -->
+        <div id="drive-status-card" class="bg-cardBg border border-borderCol rounded-2xl p-4 flex items-center justify-between shadow-xl transition-all duration-300">
+            <div class="flex items-center space-x-3">
+                <div id="drive-icon-bg" class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                    <i id="drive-icon" class="fa-solid fa-car"></i>
+                </div>
+                <div>
+                    <h4 id="drive-text-main" class="text-sm font-bold text-emerald-400">Puoi guidare ora</h4>
+                    <p id="drive-text-sub" class="text-xs text-slate-400">Sotto il limite legale dello 0.5 g/L</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span id="sober-timer-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Socio OK</span>
+            </div>
+        </div>
+
+        <!-- Primary BAC Dashboard Widget -->
+        <div class="bg-gradient-to-b from-cardBg to-darkBg border border-borderCol rounded-3xl p-6 text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <p class="text-xs font-medium text-slate-400 uppercase tracking-widest mb-1">Tasso Alcolemico Stimato (BAC)</p>
+            <div class="text-5xl font-black tracking-tight text-white mb-1 my-2 flex items-center justify-center space-x-2">
+                <span id="bac-value">0.000</span><span class="text-2xl text-slate-400 font-bold">%</span>
+            </div>
+            <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold mb-4" id="zone-badge">
+                <span id="zone-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span id="zone-title">SOBER (SOBRIO)</span>
+            </div>
+
+            <!-- Zone Visual Bar -->
+            <div class="space-y-1.5 mt-2">
+                <div class="flex justify-between text-[10px] text-slate-400 font-semibold uppercase tracking-wider px-1">
+                    <span class="text-blue-400">Sober</span>
+                    <span class="text-sky-400">Warming</span>
+                    <span class="text-amber-400">Golden</span>
+                    <span class="text-orange-400">Peak</span>
+                    <span class="text-rose-500">Danger</span>
+                </div>
+                <div class="h-3 bg-slate-800 rounded-full relative overflow-hidden p-0.5 border border-borderCol">
+                    <div id="zone-progress-bar" class="h-full rounded-full bg-gradient-to-r from-blue-500 via-emerald-400 via-amber-400 via-orange-500 to-rose-600 transition-all duration-500" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Next Drink / AI Advice Box -->
+            <div class="mt-6 pt-4 border-t border-borderCol/60 grid grid-cols-2 gap-3">
+                <div class="bg-slate-900/60 rounded-2xl p-3 border border-borderCol/40 text-left">
+                    <p class="text-[11px] text-slate-400 font-medium">Prossimo Drink Consigliato</p>
+                    <p id="next-drink-time" class="text-sm font-bold text-amber-400 mt-0.5">Subito / Libero</p>
+                </div>
+                <div class="bg-slate-900/60 rounded-2xl p-3 border border-borderCol/40 text-left">
+                    <p class="text-[11px] text-slate-400 font-medium">Smaltimento Totale</p>
+                    <p id="sober-eta" class="text-sm font-bold text-slate-200 mt-0.5">Raggiunto</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Log Actions (Drink & Food) -->
+        <div class="grid grid-cols-2 gap-3">
+            <button onclick="openLogDrinkModal()" class="py-3.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-darkBg font-bold rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center space-x-2 transition active:scale-95">
+                <i class="fa-solid fa-martini-glass-citrus text-sm"></i>
+                <span class="text-sm">LOG DRINK</span>
+            </button>
+            <button onclick="openLogFoodModal()" class="py-3.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold rounded-2xl border border-borderCol shadow-md flex items-center justify-center space-x-2 transition active:scale-95">
+                <i class="fa-solid fa-utensils text-sm text-amber-400"></i>
+                <span class="text-sm">LOG CIBO</span>
+            </button>
+        </div>
+
+        <!-- BAC Progression Chart Card -->
+        <div class="bg-cardBg border border-borderCol rounded-3xl p-4 shadow-xl">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-chart-line text-amber-400"></i>
+                    <span>Andamento Serata (BAC)</span>
+                </h3>
+                <span class="text-[10px] text-slate-400 bg-slate-900 px-2 py-0.5 rounded-full border border-borderCol">Ultime ore</span>
+            </div>
+            <div class="h-44 w-full relative">
+                <canvas id="bacChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Session Log / History List -->
+        <div class="bg-cardBg border border-borderCol rounded-3xl p-4 shadow-xl">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+                    <span>Registro Sessione</span>
+                </h3>
+                <span id="session-count" class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">0 elementi</span>
+            </div>
+            <div id="session-log-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-borderCol/60">
+        Golden Zone • Bevi consapevolmente &bull; Non guidare se hai bevuto
+    </footer>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- 1. Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-cardBg border border-borderCol w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-bold text-lg text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-user-circle text-amber-400"></i>
+                    <span>Il tuo Profilo Biometrico</span>
+                </h3>
+                <button onclick="closeProfileModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Sesso Biologico</label>
+                    <select id="profile-sex" class="w-full bg-slate-900 border border-borderCol rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition">
+                        <option value="M">Maschio (coefficiente r 0.68)</option>
+                        <option value="F">Femmina (coefficiente r 0.55)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Età (anni)</label>
+                        <input type="number" id="profile-age" required min="18" max="120" class="w-full bg-slate-900 border border-borderCol rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition" placeholder="27">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Peso (kg)</label>
+                        <input type="number" id="profile-weight" required min="35" max="250" class="w-full bg-slate-900 border border-borderCol rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition" placeholder="72">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Altezza (cm)</label>
+                    <input type="number" id="profile-height" required min="120" max="230" class="w-full bg-slate-900 border border-borderCol rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition" placeholder="182">
+                </div>
+                <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-borderCol/60">
+                    <div>
+                        <p class="text-sm font-semibold text-slate-200">Bevitore Abituale</p>
+                        <p class="text-[11px] text-slate-400">Eliminazione alcol più rapida (~20% in più)</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="profile-habitual" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-darkBg font-bold rounded-xl shadow-lg shadow-amber-500/20 transition mt-2">
+                    Salva Profilo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Log Drink Modal -->
+    <div id="drink-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-cardBg border border-borderCol w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-lg text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-beer-mug-empty text-amber-400"></i>
+                    <span>Registra Drink</span>
+                </h3>
+                <button onclick="closeLogDrinkModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Quick Preset Drinks -->
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Seleziona rapido</p>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" onclick="selectPresetDrink('Birra Piccola', 250, 5)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🍺</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Birra Piccola</p>
+                        <p class="text-[10px] text-slate-400">250 ml • 5%</p>
+                    </div>
+                </button>
+                <button type="button" onclick="selectPresetDrink('Birra Grande', 500, 5)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🍻</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Birra Grande</p>
+                        <p class="text-[10px] text-slate-400">500 ml • 5%</p>
+                    </div>
+                </button>
+                <button type="button" onclick="selectPresetDrink('Prosecco / Spritz', 150, 11)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🥂</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Spritz / Prosecco</p>
+                        <p class="text-[10px] text-slate-400">150 ml • 11%</p>
+                    </div>
+                </button>
+                <button type="button" onclick="selectPresetDrink('Vino', 125, 12)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🍷</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Calice Vino</p>
+                        <p class="text-[10px] text-slate-400">125 ml • 12%</p>
+                    </div>
+                </button>
+                <button type="button" onclick="selectPresetDrink('Shot / Spirito', 40, 40)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🥃</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Shot / Superalcolico</p>
+                        <p class="text-[10px] text-slate-400">40 ml • 40%</p>
+                    </div>
+                </button>
+                <button type="button" onclick="selectPresetDrink('Cocktail', 200, 15)" class="p-2.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-xl text-left transition flex items-center space-x-2.5">
+                    <span class="text-xl">🍸</span>
+                    <div>
+                        <p class="text-xs font-bold text-slate-200">Cocktail Mix</p>
+                        <p class="text-[10px] text-slate-400">200 ml • 15%</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Custom Drink Form -->
+            <form id="drink-form" onsubmit="addCustomDrink(event)" class="space-y-3 pt-2 border-t border-borderCol">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Oppure personalizzato</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Volume (ml)</label>
+                        <input type="number" id="custom-volume" required min="10" max="2000" value="330" class="w-full bg-slate-900 border border-borderCol rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Gradazione Alcolica (% ABV)</label>
+                        <input type="number" step="0.1" id="custom-abv" required min="0.5" max="95" value="5.0" class="w-full bg-slate-900 border border-borderCol rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-darkBg font-bold rounded-xl shadow-lg shadow-amber-500/25 transition text-sm">
+                    Aggiungi Drink al Registro
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Log Food Modal -->
+    <div id="food-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-cardBg border border-borderCol w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in fade-in slide-in-from-bottom duration-200">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-lg text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-utensils text-amber-400"></i>
+                    <span>Stato Cibo / Stomaco</span>
+                </h3>
+                <button onclick="closeLogFoodModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Lo stomaco pieno rallenta l'assorbimento dell'alcol, mantenendoti più sicuro nella Golden Zone!</p>
+            
+            <div class="space-y-2.5">
+                <button onclick="logFoodItem('Vuoto (A digiuno)', 0.0, 'Stomaco vuoto • Assorbimento immediato')" class="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-2xl flex items-center justify-between transition text-left group">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🍽️</span>
+                        <div>
+                            <p class="text-sm font-bold text-slate-200 group-hover:text-amber-400 transition">Stomaco Vuoto</p>
+                            <p class="text-xs text-slate-400">Nessun cibo recente</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20">Fast Peak</span>
+                </button>
+                <button onclick="logFoodItem('Leggero (Snack / 1/4 pizza)', 0.3, 'Spuntino leggero • Rallentamento medio')" class="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-2xl flex items-center justify-between transition text-left group">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🥨</span>
+                        <div>
+                            <p class="text-sm font-bold text-slate-200 group-hover:text-amber-400 transition">Spuntino Leggero</p>
+                            <p class="text-xs text-slate-400">Patatine, snack o 1/4 pizza</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Medio</span>
+                </button>
+                <button onclick="logFoodItem('Medio (Hamburger / mezza pizza)', 0.6, 'Pasto standard • Ottima protezione')" class="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-2xl flex items-center justify-between transition text-left group">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🍔</span>
+                        <div>
+                            <p class="text-sm font-bold text-slate-200 group-hover:text-amber-400 transition">Pasto Medio (es. Hamburger)</p>
+                            <p class="text-xs text-slate-400">Hamburger o mezza pizza</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Sicuro</span>
+                </button>
+                <button onclick="logFoodItem('Pieno (Cena abbondante / 1 pizza intera)', 1.0, 'Pasto completo • Assorbimento molto lento')" class="w-full p-3.5 bg-slate-900 hover:bg-slate-800 border border-borderCol rounded-2xl flex items-center justify-between transition text-left group">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl">🍕</span>
+                        <div>
+                            <p class="text-sm font-bold text-slate-200 group-hover:text-amber-400 transition">Pasto Abbondante</p>
+                            <p class="text-xs text-slate-400">Pizza intera o cena completa</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Ottimale</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 transform translate-y-4">
+        <div id="toast-content" class="bg-slate-900/95 border border-borderCol text-slate-100 text-xs px-4 py-3 rounded-2xl shadow-2xl backdrop-blur flex items-center space-x-2.5">
+            <i id="toast-icon" class="fa-solid fa-circle-check text-amber-400 text-sm"></i>
+            <span id="toast-text">Azione completata con successo!</span>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // State Management
+        let userProfile = {
+            sex: 'M',
+            age: 27,
+            weight: 72,
+            height: 182,
+            habitualDrinker: false
+        };
+
+        let sessionEvents = []; // Array of drinks and food logs with timestamps and grams of alcohol
+        let chartInstance = null;
+
+        // Density of ethanol in g/mL
+        const ETHANOL_DENSITY = 0.789; 
+
+        // Load data on window load
+        window.onload = function() {
+            loadFromLocalStorage();
+            initChart();
+            updateApp();
+            
+            // Check if profile is default/empty, prompt if needed
+            if (!localStorage.getItem('golden_zone_profile')) {
+                openProfileModal();
+            }
+
+            // Periodic ticker for live BAC decay recalculation every 30 seconds
+            setInterval(() => {
+                updateApp();
+            }, 30000);
+        };
+
+        function loadFromLocalStorage() {
+            const savedProfile = localStorage.getItem('golden_zone_profile');
+            if (savedProfile) {
+                userProfile = JSON.parse(savedProfile);
+            }
+            const savedEvents = localStorage.getItem('golden_zone_events');
+            if (savedEvents) {
+                sessionEvents = JSON.parse(savedEvents);
+            }
+            syncProfileFormInputs();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('golden_zone_profile', JSON.stringify(userProfile));
+            localStorage.setItem('golden_zone_events', JSON.stringify(sessionEvents));
+        }
+
+        function syncProfileFormInputs() {
+            document.getElementById('profile-sex').value = userProfile.sex;
+            document.getElementById('profile-age').value = userProfile.age;
+            document.getElementById('profile-weight').value = userProfile.weight;
+            document.getElementById('profile-height').value = userProfile.height;
+            document.getElementById('profile-habitual').checked = userProfile.habitualDrinker;
+        }
+
+        // Modal Controls
+        function openProfileModal() {
+            syncProfileFormInputs();
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfileModal() {
+            document.getElementById('profile-modal').classList.add('hidden');
+        }
+        function openLogDrinkModal() {
+            document.getElementById('drink-modal').classList.remove('hidden');
+        }
+        function closeLogDrinkModal() {
+            document.getElementById('drink-modal').classList.add('hidden');
+        }
+        function openLogFoodModal() {
+            document.getElementById('food-modal').classList.remove('hidden');
+        }
+        function closeLogFoodModal() {
+            document.getElementById('food-modal').classList.add('hidden');
+        }
+
+        function saveProfile(e) {
+            e.preventDefault();
+            userProfile.sex = document.getElementById('profile-sex').value;
+            userProfile.age = parseInt(document.getElementById('profile-age').value);
+            userProfile.weight = parseFloat(document.getElementById('profile-weight').value);
+            userProfile.height = parseFloat(document.getElementById('profile-height').value);
+            userProfile.habitualDrinker = document.getElementById('profile-habitual').checked;
+
+            saveToLocalStorage();
+            closeProfileModal();
+            showToast('Profilo biometrico aggiornato!', 'fa-solid fa-user-check');
+            updateApp();
+        }
+
+        function confirmResetSession() {
+            if (confirm('Vuoi davvero azzerare tutti i drink e ricominciare la serata?')) {
+                sessionEvents = [];
+                saveToLocalStorage();
+                updateApp();
+                showToast('Serata resettata con successo.', 'fa-solid fa-rotate-right');
+            }
+        }
+
+        // Food & Drink Logging
+        function logFoodItem(name, protectionFactor, desc) {
+            const now = new Date().getTime();
+            const foodEvent = {
+                type: 'food',
+                name: name,
+                description: desc,
+                alcoholGrams: 0,
+                timestamp: now
+            };
+            sessionEvents.push(foodEvent);
+            saveToLocalStorage();
+            closeLogFoodModal();
+            showToast(`Registrato: ${name}`, 'fa-solid fa-utensils');
+            updateApp();
+        }
+
+        function selectPresetDrink(name, volumeMl, abv) {
+            addDrink(name, volumeMl, abv);
+            closeLogDrinkModal();
+        }
+
+        function addCustomDrink(e) {
+            e.preventDefault();
+            const volume = parseFloat(document.getElementById('custom-volume').value);
+            const abv = parseFloat(document.getElementById('custom-abv').value);
+            addDrink(`Drink Personalizzato (${volume}ml)`, volume, abv);
+            closeLogDrinkModal();
+        }
+
+        function addDrink(name, volumeMl, abv) {
+            // Calculate pure alcohol in grams: Volume (ml) * (ABV / 100) * Density (0.789 g/ml)
+            const alcoholGrams = volumeMl * (abv / 100) * ETHANOL_DENSITY;
+            const now = new Date().getTime();
+
+            const drinkEvent = {
+                type: 'drink',
+                name: name,
+                volume: volumeMl,
+                abv: abv,
+                alcoholGrams: alcoholGrams,
+                timestamp: now
+            };
+
+            sessionEvents.push(drinkEvent);
+            saveToLocalStorage();
+            showToast(`Aggiunto: ${name} (${alcoholGrams.toFixed(1)}g alcol)`, 'fa-solid fa-martini-glass-citrus');
+            updateApp();
+        }
+
+        function removeEvent(index) {
+            sessionEvents.splice(index, 1);
+            saveToLocalStorage();
+            updateApp();
+            showToast('Elemento rimosso dal registro.', 'fa-solid fa-trash-can');
+        }
+
+        // Widmark Formula & BAC Calculation Engine
+        function calculateCurrentBAC(targetTime = new Date().getTime()) {
+            if (sessionEvents.length === 0) return 0;
+
+            // Widmark factor r: 0.68 for men, 0.55 for women
+            let r = userProfile.sex === 'M' ? 0.68 : 0.55;
+            let bodyWeightKg = userProfile.weight || 70;
+
+            // Elimination rate beta (typically 0.015 g% per hour, ~0.018 for habitual drinkers)
+            let beta = userProfile.habitualDrinker ? 0.018 : 0.015;
+
+            let totalBAC = 0;
+
+            // Sort events chronologically
+            const sortedEvents = [...sessionEvents].sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Check food protection delay
+            let foodFactor = 1.0;
+            sortedEvents.forEach(ev => {
+                if (ev.type === 'food') {
+                    // Food reduces peak absorption rate slightly
+                    foodFactor = 0.85;
+                }
+            });
+
+            // Calculate cumulative BAC contribution minus elimination over time
+            // Simplified Widmark pharmacokinetic simulation over discrete events
+            let currentTimestamp = targetTime;
+            
+            // To evaluate accurately at any timestamp:
+            let bacAtTime = 0;
+            
+            // Group and compute net contribution
+            let peakBAC = 0;
+            let timeSinceFirstDrinkHours = 0;
+
+            if (sortedEvents.length > 0) {
+                const firstDrinkTime = sortedEvents.find(e => e.type === 'drink')?.timestamp || sortedEvents[0].timestamp;
+                const hoursElapsed = Math.max(0, (currentTimestamp - firstDrinkTime) / (1000 * 60 * 60));
+
+                let totalAlcoholConsumedGrams = 0;
+                sortedEvents.forEach(ev => {
+                    if (ev.type === 'drink' && ev.timestamp <= currentTimestamp) {
+                        // Time elapsed since this specific drink
+                        const hoursSinceDrink = (currentTimestamp - ev.timestamp) / (1000 * 60 * 60);
+                        if (hoursSinceDrink >= 0) {
+                            // Widmark peak formula adjustment with food factor
+                            let rawContribution = (ev.alcoholGrams / (bodyWeightKg * r * 10)) * foodFactor;
+                            // Subtract elimination since this drink was consumed
+                            let netContribution = Math.max(0, rawContribution - (beta * hoursSinceDrink));
+                            bacAtTime += netContribution;
+                        }
+                    }
+                });
+            }
+
+            return Math.max(0, bacAtTime);
+        }
+
+        // UI Update Function
+        function updateApp() {
+            const now = new Date().getTime();
+            const currentBAC = calculateCurrentBAC(now);
+
+            // Update BAC Display
+            document.getElementById('bac-value').innerText = currentBAC.toFixed(3);
+
+            // Determine Zone & Styling
+            let zoneName = "SOBER (SOBRIO)";
+            let zoneColor = "bg-blue-500";
+            let badgeClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+            let progressBarWidth = "0%";
+            let nextDrinkAdvice = "Libero • Pronto";
+            let drivingAllowed = true;
+
+            if (currentBAC === 0) {
+                zoneName = "SOBER (SOBRIO)";
+                zoneColor = "bg-blue-500";
+                badgeClass = "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+                progressBarWidth = "2%";
+                nextDrinkAdvice = "Puoi iniziare la serata";
+            } else if (currentBAC > 0 && currentBAC < 0.03) {
+                zoneName = "WARMING (RISCALDAMENTO)";
+                zoneColor = "bg-sky-400";
+                badgeClass = "bg-sky-500/10 text-sky-400 border border-sky-500/20";
+                progressBarWidth = "25%";
+                nextDrinkAdvice = "Prossimo drink tra 45 min";
+            } else if (currentBAC >= 0.03 && currentBAC <= 0.06) {
+                zoneName = "⭐ GOLDEN ZONE (TOP)";
+                zoneColor = "bg-amber-400";
+                badgeClass = "bg-amber-500/15 text-amber-300 border border-amber-500/30 animate-pulse";
+                progressBarWidth = "55%";
+                nextDrinkAdvice = "Bevi acqua o aspetta 1h per mantenere";
+            } else if (currentBAC > 0.06 && currentBAC <= 0.10) {
+                zoneName = "PAST PEAK (SOPRA IL PICCO)";
+                zoneColor = "bg-orange-500";
+                badgeClass = "bg-orange-500/15 text-orange-400 border border-orange-500/30";
+                progressBarWidth = "80%";
+                nextDrinkAdvice = "Stop alcol! Bevi molta acqua";
+                drivingAllowed = false;
+            } else {
+                zoneName = "🚨 DANGER ZONE (ECCESSIVO)";
+                zoneColor = "bg-rose-600";
+                badgeClass = "bg-rose-500/15 text-rose-400 border border-rose-500/30";
+                progressBarWidth = "100%";
+                nextDrinkAdvice = "Pericolo mal di testa! Stop totale";
+                drivingAllowed = false;
+            }
+
+            // Update UI elements
+            document.getElementById('zone-title').innerText = zoneName;
+            document.getElementById('zone-dot').className = `w-2 h-2 rounded-full ${zoneColor}`;
+            document.getElementById('zone-badge').className = `inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold ${badgeClass}`;
+            document.getElementById('zone-progress-bar').style.width = progressBarWidth;
+            document.getElementById('next-drink-time').innerText = nextDrinkAdvice;
+
+            // Driving Status Widget Update (Legal limit 0.5 g/L = 0.05% BAC in Italy)
+            const legalLimitBAC = 0.05;
+            const beta = userProfile.habitualDrinker ? 0.018 : 0.015;
+            
+            if (currentBAC <= legalLimitBAC) {
+                document.getElementById('drive-status-card').className = "bg-cardBg border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between shadow-xl transition-all duration-300";
+                document.getElementById('drive-icon-bg').className = "w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg";
+                document.getElementById('drive-icon').className = "fa-solid fa-car";
+                document.getElementById('drive-text-main').className = "text-sm font-bold text-emerald-400";
+                document.getElementById('drive-text-main').innerText = "Puoi guidare ora";
+                document.getElementById('drive-text-sub').innerText = "Sotto il limite legale dello 0.5 g/L";
+                document.getElementById('sober-timer-badge').className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                document.getElementById('sober-timer-badge').innerText = "GUIDA OK";
+                document.getElementById('sober-eta').innerText = "Raggiunto";
+            } else {
+                // Calculate hours needed to reach 0.05%
+                const excessBAC = currentBAC - legalLimitBAC;
+                const hoursToDrive = excessBAC / beta;
+                const minutesToDrive = Math.ceil(hoursToDrive * 60);
+                
+                const targetDriveTime = new Date(now + minutesToDrive * 60000);
+                const timeString = targetDriveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                document.getElementById('drive-status-card').className = "bg-cardBg border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between shadow-xl transition-all duration-300";
+                document.getElementById('drive-icon-bg').className = "w-10 h-10 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-lg";
+                document.getElementById('drive-icon').className = "fa-solid fa-ban";
+                document.getElementById('drive-text-main').className = "text-sm font-bold text-rose-400";
+                document.getElementById('drive-text-main').innerText = "Non puoi guidare";
+                document.getElementById('drive-text-sub').innerText = `Guida sicura stimata alle ${timeString}`;
+                document.getElementById('sober-timer-badge').className = "text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                document.getElementById('sober-timer-badge').innerText = `Tra ${Math.floor(minutesToDrive/60)}h ${minutesToDrive%60}m`;
+                
+                // Absolute sobriety time (0.000)
+                const hoursToZero = currentBAC / beta;
+                const zeroMinutes = Math.ceil(hoursToZero * 60);
+                const zeroTargetTime = new Date(now + zeroMinutes * 60000);
+                document.getElementById('sober-eta').innerText = zeroTargetTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            renderSessionLog();
+            updateChartData();
+        }
+
+        // Render History List
+        function renderSessionLog() {
+            const container = document.getElementById('session-log-list');
+            document.getElementById('session-count').innerText = `${sessionEvents.length} elementi`;
+
+            if (sessionEvents.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-500 text-xs">
+                        <i class="fa-solid fa-mug-hot text-2xl mb-1.5 opacity-40"></i>
+                        <p>Nessun drink o cibo registrato in questa serata.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            // Render in reverse chronological order
+            const reversed = [...sessionEvents].map((ev, idx) => ({ ...ev, originalIndex: idx })).reverse();
+
+            reversed.forEach(ev => {
+                const dateStr = new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const itemEl = document.createElement('div');
+                itemEl.className = "flex items-center justify-between p-3 bg-slate-900/60 border border-borderCol/60 rounded-2xl hover:bg-slate-900 transition";
+
+                if (ev.type === 'drink') {
+                    itemEl.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-beer-mug-empty"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-200">${ev.name}</p>
+                                <p class="text-[10px] text-slate-400">${ev.volume} ml &bull; ${ev.abv}% &bull; <span class="text-amber-400 font-semibold">${ev.alcoholGrams.toFixed(1)}g alcol</span></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] font-medium text-slate-400">${dateStr}</span>
+                            <button onclick="removeEvent(${ev.originalIndex})" class="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    itemEl.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                                <i class="fa-solid fa-utensils"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-200">Cibo: ${ev.name}</p>
+                                <p class="text-[10px] text-slate-400">${ev.description}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[11px] font-medium text-slate-400">${dateStr}</span>
+                            <button onclick="removeEvent(${ev.originalIndex})" class="w-7 h-7 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center justify-center transition">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+                container.appendChild(itemEl);
+            });
+        }
+
+        // Chart.js Initialization & Update
+        function initChart() {
+            const ctx = document.getElementById('bacChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'BAC %',
+                        data: [],
+                        borderColor: '#eab308',
+                        backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#eab308'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `BAC: ${context.parsed.y.toFixed(3)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(30, 41, 59, 0.5)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(30, 41, 59, 0.5)' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            min: 0,
+                            max: 0.12
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartData() {
+            if (!chartInstance) return;
+
+            if (sessionEvents.length === 0) {
+                chartInstance.data.labels = ['Ora'];
+                chartInstance.data.datasets[0].data = [0];
+                chartInstance.update();
+                return;
+            }
+
+            // Generate timeline points across past 4 hours up to current time + 3 hours future projection
+            const now = new Date().getTime();
+            const labels = [];
+            const dataPoints = [];
+
+            const startWindow = now - (3 * 60 * 60 * 1000); // 3 hours ago
+            const endWindow = now + (4 * 60 * 60 * 1000);   // 4 hours in future
+            const step = 20 * 60 * 1000; // every 20 minutes
+
+            for (let t = startWindow; t <= endWindow; t += step) {
+                const timeStr = new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                labels.push(timeStr);
+                dataPoints.push(calculateCurrentBAC(t));
+            }
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = dataPoints;
+            chartInstance.update();
+        }
+
+        // Toast Notifications
+        function showToast(message, iconClass = 'fa-solid fa-circle-check') {
+            const container = document.getElementById('toast-container');
+            const textEl = document.getElementById('toast-text');
+            const iconEl = document.getElementById('toast-icon');
+
+            textEl.innerText = message;
+            iconEl.className = `${iconClass} text-amber-400 text-sm`;
+
+            container.classList.remove('opacity-0', 'translate-y-4');
+            container.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                container.classList.remove('opacity-100', 'translate-y-0');
+                container.classList.add('opacity-0', 'translate-y-4');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
