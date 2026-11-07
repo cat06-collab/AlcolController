@@ -1,1 +1,17 @@
-
+{
+  "short_name": "GoldenZone",
+  "name": "Golden Zone - Calcolatore BAC",
+  "icons": [
+    {
+      "src": "icona-birra.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#f59e0b",
+  "display": "standalone",
+  "orientation": "portrait"
+}
